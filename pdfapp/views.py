@@ -144,8 +144,9 @@ def home(request):
 				import math
 				# start with a font based on the shorter page dimension (adjustable)
 				# If you want the center watermark bigger/smaller, change the multiplier below
-				# reduced to make the centered watermark slightly smaller (0.055 is smaller than 0.07)
-				large_font = max(16, int(min(page_width, page_height) * 0.055))
+				# reduced further to make the centered watermark a bit smaller than before
+				# smaller multiplier and slightly lower minimum size
+				large_font = max(10, int(min(page_width, page_height) * 0.035))
 				# compute text width at initial size
 				text_width = c.stringWidth(watermark_text, "Helvetica", large_font)
 				# diagonal length for the page and allow smaller coverage
