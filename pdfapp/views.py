@@ -134,16 +134,7 @@ def home(request):
 				# create a subtle shiny top-right red watermark
 				text_width_small = c.stringWidth(watermark_text, "Helvetica-Bold", small_font)
 				left = tx - text_width_small
-				# draw a thin white shine bar above the text
-				try:
-					shine_w = max(text_width_small * 0.6, small_font * 1.8)
-					shine_h = max(small_font * 0.22, 3)
-					shine_x = left + (text_width_small - shine_w) / 2.0
-					shine_y = ty + small_font * 0.35
-					c.setFillColorRGB(1, 1, 1, alpha=0.22)
-					c.roundRect(shine_x, shine_y, shine_w, shine_h, radius=shine_h / 2.0, fill=1, stroke=0)
-				except Exception:
-					pass
+				# removed top-right white shine overlay to avoid visible white line across watermark
 				# draw watermark text on top (bold and larger) using chosen color
 				c.setFont("Helvetica-Bold", small_font)
 				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.98)
