@@ -16,6 +16,54 @@ def home(request):
 		if pdf_form.is_valid() and watermark_form.is_valid() and merge_form.is_valid() and custom_name_form.is_valid():
 			pdf_file = pdf_form.cleaned_data['pdf_file']
 			watermark_text = watermark_form.cleaned_data['watermark']
+			# Keep the original selection for color mapping (before possible suffix append)
+			selected_choice = watermark_form.cleaned_data['watermark']
+
+			# normalize choice to a simple key (lowercase, alphanumeric)
+			def _normalize_choice(s):
+				import re
+				if not s:
+					return ''
+				return re.sub(r'[^0-9a-z]', '', s.lower())
+
+			# map normalized keys to RGB colors
+			_color_map = {
+				# red
+				'bhudevnetworkvivahcom': (0.78, 0.08, 0.08),
+				'bhudevnetworkvivah': (0.78, 0.08, 0.08),
+				'divorce': (0.78, 0.08, 0.08),
+				'masters': (0.78, 0.08, 0.08),
+				'master': (0.78, 0.08, 0.08),
+				'maharashtra': (0.78, 0.08, 0.08),
+
+				# dark blue
+				'nri': (0.06, 0.12, 0.45),
+				'saurashtra': (0.06, 0.12, 0.45),
+				'govjob': (0.06, 0.12, 0.45),
+				'sg': (0.06, 0.12, 0.45),
+				'ng': (0.06, 0.12, 0.45),
+				'1012': (0.06, 0.12, 0.45),
+				'canada': (0.06, 0.12, 0.45),
+				'usa': (0.06, 0.12, 0.45),
+				'ausnz': (0.06, 0.12, 0.45),
+				'europe': (0.06, 0.12, 0.45),
+				'mumbai': (0.06, 0.12, 0.45),
+				'amdavad': (0.06, 0.12, 0.45),
+				'vadodara': (0.06, 0.12, 0.45),
+				'jamnagar': (0.06, 0.12, 0.45),
+				'bhavnagar': (0.06, 0.12, 0.45),
+
+				# sky blue
+				'doctor': (0.20, 0.65, 0.90),
+
+				# yellow
+				'cacs': (0.95, 0.76, 0.07),
+				'40plus': (0.95, 0.76, 0.07),
+			}
+
+			_choice_key = _normalize_choice(selected_choice)
+			color_rgb = _color_map.get(_choice_key, (0.78, 0.08, 0.08))
+
 			# If the selected watermark already contains a dot (a domain), don't append suffix.
 			# Otherwise append the standard suffix to form 'NAME.bhudevnetworkvivah.com'
 			suffix = '.bhudevnetworkvivah.com'
@@ -76,9 +124,9 @@ def home(request):
 					c.roundRect(shine_x, shine_y, shine_w, shine_h, radius=shine_h / 2.0, fill=1, stroke=0)
 				except Exception:
 					pass
-				# draw red watermark text on top (bold and larger)
+				# draw watermark text on top (bold and larger) using chosen color
 				c.setFont("Helvetica-Bold", small_font)
-				c.setFillColorRGB(0.78, 0.08, 0.08, alpha=0.98)
+				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.98)
 				c.drawRightString(tx, ty, watermark_text)
 
 				# centered large tilted watermark - make noticeably smaller and fit the page
@@ -96,10 +144,10 @@ def home(request):
 				if text_width > 0 and text_width > max_width:
 					scale = max_width / text_width
 					large_font = max(12, int(large_font * scale))
-				# use darker color and increased opacity for the centered watermark
+				# use chosen color and increased opacity for the centered watermark
 				c.setFont("Helvetica-Bold", large_font)
-				# red color for center watermark
-				c.setFillColorRGB(0.6, 0.06, 0.06, alpha=0.6)
+				# center watermark color (same hue, lower opacity)
+				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.6)
 				c.saveState()
 				# center and rotate slightly less to reduce effective span
 				c.translate(page_width / 2.0, page_height / 2.0)
@@ -115,7 +163,7 @@ def home(request):
 					c.roundRect(shine_x_c, shine_y_c, shine_w_c, shine_h_c, radius=shine_h_c / 2.0, fill=1, stroke=0)
 				except Exception:
 					pass
-				c.setFillColorRGB(0.6, 0.06, 0.06, alpha=0.6)
+				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.6)
 				c.drawCentredString(0, 0, watermark_text)
 				c.restoreState()
 
@@ -140,14 +188,28 @@ def home(request):
 
 			# Build custom filename
 			custom_filename = f"{city}_{name}_{date}_{education}.pdf".replace(' ', '_')
-			output_path = f'temp_{custom_filename if custom_filename != "____.pdf" else "output.pdf"}'
-			with open(output_path, 'wb') as out_f:
-				pdf_writer.write(out_f)
-			os.remove(pdf_path)
-			with open(output_path, 'rb') as out_f:
-				response = HttpResponse(out_f.read(), content_type='application/pdf')
-				response['Content-Disposition'] = f'attachment; filename="{custom_filename if custom_filename != "____.pdf" else "output.pdf"}"'
-			os.remove(output_path)
+			download_name = custom_filename if custom_filename != "____.pdf" else "output.pdf"
+
+			# Write final PDF to memory to avoid creating another temp file
+			output_io = BytesIO()
+			pdf_writer.write(output_io)
+			output_io.seek(0)
+
+			# Clean up temporary input files if they exist (defensive)
+			try:
+				if os.path.exists(pdf_path):
+					os.remove(pdf_path)
+			except Exception:
+				pass
+			# pdf_path_2 may or may not exist depending on whether a second file was uploaded
+			try:
+				if 'pdf_path_2' in locals() and os.path.exists(pdf_path_2):
+					os.remove(pdf_path_2)
+			except Exception:
+				pass
+
+			response = HttpResponse(output_io.read(), content_type='application/pdf')
+			response['Content-Disposition'] = f'attachment; filename="{download_name}"'
 			return response
 	else:
 		pdf_form = PDFUploadForm()
