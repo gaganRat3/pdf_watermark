@@ -84,8 +84,8 @@ def home(request):
 			_center_alpha = 0.32
 
 			# If the selected watermark already contains a dot (a domain), don't append suffix.
-			# Otherwise append the standard suffix to form 'NAME.bhudevnetworkvivah.com'
-			suffix = '.bhudevnetworkvivah.com'
+			# Otherwise append the standard suffix to form 'NAME.BhudevNetworkVivah.com'
+			suffix = '.BhudevNetworkVivah.com'
 			if '.' in watermark_text:
 				final_watermark = watermark_text
 			else:
@@ -297,7 +297,7 @@ def home(request):
 				raise
 	else:
 		pdf_form = PDFUploadForm()
-		watermark_form = WatermarkForm(initial={'watermark': 'bhudevnetworkvivah.com'})
+		watermark_form = WatermarkForm(initial={'watermark': 'BhudevNetworkVivah.com'})
 		merge_form = MergePDFForm()
 		custom_name_form = CustomFileNameForm()
 	return render(request, 'pdfapp/home.html', {

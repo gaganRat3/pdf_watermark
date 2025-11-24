@@ -5,7 +5,7 @@ class PDFUploadForm(forms.Form):
 
 class WatermarkForm(forms.Form):
     WATERMARK_CHOICES = [
-        ('Bhudevnetworkvivah.com', 'Bhudevnetworkvivah.com'),
+        ('BhudevNetworkVivah.com', 'BhudevNetworkVivah.com'),
         ('NRI', 'NRI'),
         ('Divorce', 'Divorce'),
         ('Saurashtra', 'Saurashtra'),
