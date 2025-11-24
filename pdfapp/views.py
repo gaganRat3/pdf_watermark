@@ -6,6 +6,16 @@ from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from io import BytesIO
+import tempfile
+import threading
+import time
+from django.http import FileResponse
+
+# Optional PDF optimization library. If installed, we'll use it to linearize/compress output PDFs
+try:
+	import pikepdf
+except Exception:
+	pikepdf = None
 
 def home(request):
 	if request.method == 'POST':
@@ -216,27 +226,75 @@ def home(request):
 				custom_filename = 'output.pdf'
 			download_name = custom_filename
 
-			# Write final PDF to memory to avoid creating another temp file
-			output_io = BytesIO()
-			pdf_writer.write(output_io)
-			output_io.seek(0)
-
-			# Clean up temporary input files if they exist (defensive)
+			# Write final PDF to a temporary file
+			tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+			tmp_path = tmp_file.name
 			try:
-				if os.path.exists(pdf_path):
-					os.remove(pdf_path)
-			except Exception:
-				pass
-			# pdf_path_2 may or may not exist depending on whether a second file was uploaded
-			try:
-				if 'pdf_path_2' in locals() and os.path.exists(pdf_path_2):
-					os.remove(pdf_path_2)
-			except Exception:
-				pass
+				with open(tmp_path, 'wb') as out_f:
+					pdf_writer.write(out_f)
 
-			response = HttpResponse(output_io.read(), content_type='application/pdf')
-			response['Content-Disposition'] = f'attachment; filename="{download_name}"'
-			return response
+				# Optionally optimize/linearize the PDF using pikepdf if available
+				optimized_path = None
+				if pikepdf is not None:
+					try:
+						opt_tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+						optimized_path = opt_tmp.name
+						# Try to save with linearize and stream optimizations; fall back if arguments not supported
+						try:
+							pdf = pikepdf.Pdf.open(tmp_path)
+							pdf.save(optimized_path, linearize=True, optimize_streams=True)
+						except TypeError:
+							# older pikepdf may not accept optimize_streams
+							pdf = pikepdf.Pdf.open(tmp_path)
+							pdf.save(optimized_path, linearize=True)
+						# remove the original tmp file after creating optimized copy
+						try:
+							os.remove(tmp_path)
+						except Exception:
+							pass
+					except Exception:
+						# If optimization fails, keep the original tmp_path and continue
+						optimized_path = None
+
+				# Clean up temporary input files if they exist (defensive)
+				try:
+					if os.path.exists(pdf_path):
+						os.remove(pdf_path)
+				except Exception:
+					pass
+				# pdf_path_2 may or may not exist depending on whether a second file was uploaded
+				try:
+					if 'pdf_path_2' in locals() and os.path.exists(pdf_path_2):
+						os.remove(pdf_path_2)
+				except Exception:
+					pass
+
+				# Decide which file to stream: optimized (if created) or original tmp
+				file_to_stream = optimized_path if optimized_path else tmp_path
+				response = FileResponse(open(file_to_stream, 'rb'), as_attachment=True, filename=download_name)
+
+				# Schedule asynchronous cleanup of the temporary output file(s) after a short delay
+				def _cleanup(paths, delay=30.0):
+					time.sleep(delay)
+					for p in paths:
+						try:
+							if p and os.path.exists(p):
+								os.remove(p)
+						except Exception:
+							pass
+				paths_to_cleanup = [tmp_path, optimized_path] if optimized_path else [tmp_path]
+				threading.Thread(target=_cleanup, args=(paths_to_cleanup,), daemon=True).start()
+
+				return response
+			except Exception:
+				# If something goes wrong, ensure temp files are removed if they were created
+				for p in (tmp_path, optimized_path):
+					try:
+						if p and os.path.exists(p):
+							os.remove(p)
+					except Exception:
+						pass
+				raise
 	else:
 		pdf_form = PDFUploadForm()
 		watermark_form = WatermarkForm(initial={'watermark': 'bhudevnetworkvivah.com'})
