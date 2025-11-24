@@ -65,6 +65,14 @@ def home(request):
 			_choice_key = _normalize_choice(selected_choice)
 			color_rgb = _color_map.get(_choice_key, (0.78, 0.08, 0.08))
 
+			# create a lighter version of the color for the centered watermark
+			# mix factor: 0.0 = original color, 1.0 = white
+			# lowered mixing and increased alpha to make the center watermark a bit darker
+			_mix_to_white = 0.40
+			lighter_rgb = tuple(color_rgb[i] * (1 - _mix_to_white) + _mix_to_white * 1.0 for i in range(3))
+			# centered watermark alpha (increase to make it more visible)
+			_center_alpha = 0.32
+
 			# If the selected watermark already contains a dot (a domain), don't append suffix.
 			# Otherwise append the standard suffix to form 'NAME.bhudevnetworkvivah.com'
 			suffix = '.bhudevnetworkvivah.com'
@@ -147,24 +155,16 @@ def home(request):
 					large_font = max(12, int(large_font * scale))
 				# use chosen color and increased opacity for the centered watermark
 				c.setFont("Helvetica-Bold", large_font)
-				# center watermark color (same hue, lower opacity)
-				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.6)
+				# center watermark color (lighter variant, much lower opacity)
+				c.setFillColorRGB(lighter_rgb[0], lighter_rgb[1], lighter_rgb[2], alpha=_center_alpha)
 				c.saveState()
 				# center and rotate slightly less to reduce effective span
 				c.translate(page_width / 2.0, page_height / 2.0)
 				c.rotate(25)
 				# compute text width for center shine overlay
 				tw = c.stringWidth(watermark_text, "Helvetica-Bold", large_font)
-				try:
-					shine_w_c = tw * 0.6
-					shine_h_c = max(large_font * 0.18, 6)
-					shine_x_c = -tw / 2.0 + (tw - shine_w_c) / 2.0
-					shine_y_c = large_font * 0.25
-					c.setFillColorRGB(1, 1, 1, alpha=0.18)
-					c.roundRect(shine_x_c, shine_y_c, shine_w_c, shine_h_c, radius=shine_h_c / 2.0, fill=1, stroke=0)
-				except Exception:
-					pass
-				c.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=0.6)
+				# removed center white shine overlay to avoid a visible white line across the centered watermark
+				c.setFillColorRGB(lighter_rgb[0], lighter_rgb[1], lighter_rgb[2], alpha=_center_alpha)
 				c.drawCentredString(0, 0, watermark_text)
 				c.restoreState()
 
