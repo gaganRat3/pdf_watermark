@@ -113,8 +113,9 @@ def home(request):
 				c = canvas.Canvas(wm_io, pagesize=(page_width, page_height))
 
 				# top-right watermark size (change multiplier to tune size)
-				# e.g. 0.03 = larger, 0.025 = medium, 0.02 = smaller
-				small_font = max(14, int(page_width * 0.03))
+				# increased slightly to make top-right watermark a bit bigger
+				# e.g. 0.04 = larger, 0.035 = slightly larger than 0.03
+				small_font = max(16, int(page_width * 0.035))
 				margin = 20
 				tx = page_width - margin
 				ty = page_height - margin - small_font
@@ -141,8 +142,9 @@ def home(request):
 				# centered large tilted watermark - make noticeably smaller and fit the page
 				import math
 				# start with a font based on the shorter page dimension (adjustable)
-				# If you want the center watermark bigger/smaller, change the multiplier below (0.07 -> bigger, 0.05 -> smaller)
-				large_font = max(20, int(min(page_width, page_height) * 0.07))
+				# If you want the center watermark bigger/smaller, change the multiplier below
+				# reduced to make the centered watermark slightly smaller (0.055 is smaller than 0.07)
+				large_font = max(16, int(min(page_width, page_height) * 0.055))
 				# compute text width at initial size
 				text_width = c.stringWidth(watermark_text, "Helvetica", large_font)
 				# diagonal length for the page and allow smaller coverage
@@ -158,9 +160,9 @@ def home(request):
 				# center watermark color (lighter variant, much lower opacity)
 				c.setFillColorRGB(lighter_rgb[0], lighter_rgb[1], lighter_rgb[2], alpha=_center_alpha)
 				c.saveState()
-				# center and rotate slightly less to reduce effective span
+				# center and rotate to 45 degrees for the tilted watermark
 				c.translate(page_width / 2.0, page_height / 2.0)
-				c.rotate(25)
+				c.rotate(45)
 				# compute text width for center shine overlay
 				tw = c.stringWidth(watermark_text, "Helvetica-Bold", large_font)
 				# removed center white shine overlay to avoid a visible white line across the centered watermark
@@ -187,9 +189,32 @@ def home(request):
 					pdf_writer.add_page(page)
 				os.remove(pdf_path_2)
 
-			# Build custom filename
-			custom_filename = f"{city}_{name}_{date}_{education}.pdf".replace(' ', '_')
-			download_name = custom_filename if custom_filename != "____.pdf" else "output.pdf"
+			# Build custom filename in requested sequence: city.name.dob.education
+			# - fields separated by dots
+			# - city and date wrapped in parentheses
+			# - name and education: spaces replaced by dots
+			parts = []
+			city_part = city.strip() if city else ''
+			if city_part:
+				parts.append(f"({city_part})")
+
+			name_part = name.strip() if name else ''
+			if name_part:
+				parts.append(name_part.replace(' ', '.'))
+
+			date_part = date.strip() if date else ''
+			if date_part:
+				parts.append(f"({date_part})")
+
+			education_part = education.strip() if education else ''
+			if education_part:
+				parts.append(education_part.replace(' ', '.'))
+
+			if parts:
+				custom_filename = '.'.join(parts) + '.pdf'
+			else:
+				custom_filename = 'output.pdf'
+			download_name = custom_filename
 
 			# Write final PDF to memory to avoid creating another temp file
 			output_io = BytesIO()
