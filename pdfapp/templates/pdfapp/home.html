@@ -394,6 +394,55 @@
           }
         }
       }
+
+      // Auto-format date input as dd-mm-yyyy while typing
+      function _formatDateValue(raw) {
+        const digits = raw.replace(/\D/g, "").slice(0, 8); // ddmmyyyy
+        let out = "";
+        if (digits.length <= 2) {
+          out = digits;
+        } else if (digits.length <= 4) {
+          out = digits.slice(0, 2) + "-" + digits.slice(2);
+        } else {
+          out =
+            digits.slice(0, 2) +
+            "-" +
+            digits.slice(2, 4) +
+            "-" +
+            digits.slice(4);
+        }
+        return out;
+      }
+
+      function attachDateFormatter() {
+        const dateInput = document.querySelector(
+          'input[name$="date"], input[name="date"]'
+        );
+        if (!dateInput) return;
+        dateInput.setAttribute("placeholder", "dd-mm-yyyy");
+        dateInput.setAttribute("maxlength", "10");
+
+        dateInput.addEventListener("input", (ev) => {
+          const cur = ev.target;
+          const formatted = _formatDateValue(cur.value);
+          // only update if changed to avoid moving caret unnecessarily
+          if (formatted !== cur.value) cur.value = formatted;
+        });
+
+        // handle paste
+        dateInput.addEventListener("paste", () => {
+          setTimeout(() => {
+            dateInput.value = _formatDateValue(dateInput.value);
+          }, 0);
+        });
+      }
+
+      // Attach formatter on DOM ready
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", attachDateFormatter);
+      } else {
+        attachDateFormatter();
+      }
     </script>
   </body>
 </html>
