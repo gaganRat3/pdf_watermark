@@ -191,27 +191,15 @@ def home(request):
 					pdf_writer.add_page(page)
 				os.remove(pdf_path_2)
 
-			# Build custom filename in requested sequence: city.name.dob.education
-			# - fields separated by dots
-			# - city and date wrapped in parentheses
-			# - name and education: spaces replaced by dots
-			parts = []
-			city_part = city.strip() if city else ''
-			if city_part:
-				parts.append(f"({city_part})")
+			# Build custom filename: cityname.name.dob.education (no dots in fields)
+			city_part = city.replace(' ', '') if city else ''
+			name_part = name.replace(' ', '') if name else ''
+			date_part = date.replace(' ', '') if date else ''
+			education_part = education.replace(' ', '') if education else ''
 
-			name_part = name.strip() if name else ''
-			if name_part:
-				parts.append(name_part.replace(' ', '.'))
-
-			date_part = date.strip() if date else ''
-			if date_part:
-				parts.append(f"({date_part})")
-
-			education_part = education.strip() if education else ''
-			if education_part:
-				parts.append(education_part.replace(' ', '.'))
-
+			parts = [city_part, name_part, date_part, education_part]
+			# Remove empty fields
+			parts = [p for p in parts if p]
 			if parts:
 				custom_filename = '.'.join(parts) + '.pdf'
 			else:
