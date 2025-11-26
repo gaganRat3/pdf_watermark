@@ -83,17 +83,19 @@ def home(request):
 			# centered watermark alpha (increase to make it more visible)
 			_center_alpha = 0.32
 
-			# If the selected watermark already contains a dot (a domain), don't append suffix.
-			# Otherwise append the standard suffix to form 'NAME.BhudevNetworkVivah.com'
-			suffix = '.BhudevNetworkVivah.com'
-			if '.' in watermark_text:
-				final_watermark = watermark_text
+			# Special case for Mangalfera watermark
+			if watermark_text == 'Mangalfera':
+				watermark_text = 'Mangalfera.in'
 			else:
-				if watermark_text.endswith(suffix):
+				suffix = '.BhudevNetworkVivah.com'
+				if '.' in watermark_text:
 					final_watermark = watermark_text
 				else:
-					final_watermark = f"{watermark_text}{suffix}"
-			watermark_text = final_watermark
+					if watermark_text.endswith(suffix):
+						final_watermark = watermark_text
+					else:
+						final_watermark = f"{watermark_text}{suffix}"
+				watermark_text = final_watermark
 			pdf_file_2 = merge_form.cleaned_data.get('pdf_file_2')
 			city = custom_name_form.cleaned_data.get('city', '')
 			name = custom_name_form.cleaned_data.get('name', '')
