@@ -70,6 +70,9 @@ def home(request):
 				# yellow
 				'cacs': (0.95, 0.76, 0.07),
 				'40plus': (0.95, 0.76, 0.07),
+
+				# pink/rose (#b22473)
+				'physical': (0.70, 0.14, 0.45),
 			}
 
 			_choice_key = _normalize_choice(selected_choice)

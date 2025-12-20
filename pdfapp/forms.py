@@ -33,6 +33,7 @@ class WatermarkForm(forms.Form):
         ('Mangalfera', 'Mangalfera'),
         ('Jamnagar', 'Jamnagar'),
         ('Bhavnagar', 'Bhavnagar'),
+        ('Physical', 'Physical'),
     ]
     watermark = forms.ChoiceField(choices=WATERMARK_CHOICES, label='Select Watermark')
 
